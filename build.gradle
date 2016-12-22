@@ -1,0 +1,34 @@
+group 'me.ifelseif'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+repositories {
+    mavenCentral()
+    maven { url "http://172.17.149.8:8081/nexus/content/groups/public/" }
+    maven { url "http://repo.maven.apache.org/maven2" }
+}
+
+dependencies {
+    compile 'org.apache.logging.log4j:log4j-api:2.5'
+    compile 'org.apache.logging.log4j:log4j-core:2.5'
+
+    //Log4j 1.x Bridge to Log4j 2.x
+    compile 'org.apache.logging.log4j:log4j-1.2-api:2.5'
+    //Apache Commons Logging Bridge to Log4j 2.x
+    compile 'org.apache.logging.log4j:log4j-jcl:2.5'
+    //slf4j Bridge to Log4j 2.x
+    compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.5'
+    //Java Util Logging Bridge to Log4j 2.x
+    compile 'org.apache.logging.log4j:log4j-jul:2.5'
+
+    compile 'org.eclipse.jetty.http2:http2-http-client-transport:9.4.0.v20161208'
+    compile 'org.eclipse.jetty.http2:http2-client:9.4.0.v20161208'
+    compile 'org.mortbay.jetty.alpn:alpn-boot:8.1.7.v20160121'
+    compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
+
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+}
