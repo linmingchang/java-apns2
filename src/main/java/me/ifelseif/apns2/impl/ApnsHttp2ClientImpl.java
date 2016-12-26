@@ -3,8 +3,6 @@ package me.ifelseif.apns2.impl;
 import me.ifelseif.apns2.ApnsHttp2Client;
 import me.ifelseif.apns2.ResponseListener;
 import me.ifelseif.apns2.model.Notification;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.HttpURI;
 import org.eclipse.jetty.http.HttpVersion;
@@ -21,6 +19,8 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -40,7 +40,7 @@ import java.util.concurrent.TimeoutException;
  * Created by linmingchang on 16/12/21.
  */
 public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
-    private static final Logger log = LogManager.getLogger(ApnsHttp2ClientImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(ApnsHttp2ClientImpl.class);
     private static final String APNS_HOST = "api.push.apple.com";
     private static final int APNS_PORT = 443;
     private final String URI_BASE = "https://" + APNS_PORT + ":" + APNS_PORT + "/3/device/";

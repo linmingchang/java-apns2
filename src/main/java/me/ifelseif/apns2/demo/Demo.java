@@ -12,8 +12,6 @@ public class Demo {
         ApnsHttp2ClientImpl client = new ApnsHttp2ClientImpl.Builder()
                 .key("/production-195-0.p12")
                 .password("apple")
-                .connectTimeout(60)
-                .pushTimeout(3000)
                 .topic("com.weather.NOBWeather")
                 .build()
                 .start();

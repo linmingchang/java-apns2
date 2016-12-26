@@ -15,16 +15,10 @@ repositories {
 dependencies {
     compile 'org.apache.logging.log4j:log4j-api:2.5'
     compile 'org.apache.logging.log4j:log4j-core:2.5'
-
-    //Log4j 1.x Bridge to Log4j 2.x
-    compile 'org.apache.logging.log4j:log4j-1.2-api:2.5'
-    //Apache Commons Logging Bridge to Log4j 2.x
-    compile 'org.apache.logging.log4j:log4j-jcl:2.5'
     //slf4j Bridge to Log4j 2.x
     compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.5'
-    //Java Util Logging Bridge to Log4j 2.x
-    compile 'org.apache.logging.log4j:log4j-jul:2.5'
 
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.21'
     compile 'org.eclipse.jetty.http2:http2-http-client-transport:9.4.0.v20161208'
     compile 'org.eclipse.jetty.http2:http2-client:9.4.0.v20161208'
     compile 'org.mortbay.jetty.alpn:alpn-boot:8.1.7.v20160121'
