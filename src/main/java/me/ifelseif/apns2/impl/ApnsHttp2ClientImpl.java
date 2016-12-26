@@ -56,14 +56,19 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     private String topic;
     private static final int BACKOFF_MAX = 300000;
     private static final int BACKOFF_MIN = 3000;
-    private int pushRetryTimes=3;
+    private int pushRetryTimes;
+    private int apnsExpiration;
+    private int apnsPriority;
 
-    public ApnsHttp2ClientImpl(String password, InputStream key, int connectTimeout, int pushTimeout,String topic) {
+    public ApnsHttp2ClientImpl(String password, InputStream key, int connectTimeout, int pushTimeout,String topic,int pushRetryTimes,int apnsExpiration,int apnsPriority) {
         this.password = password;
         this.key = key;
         this.connectTimeout = connectTimeout;
         this.pushTimeout = pushTimeout;
         this.topic = topic;
+        this.pushRetryTimes = pushRetryTimes;
+        this.apnsExpiration = apnsExpiration;
+        this.apnsPriority = apnsPriority;
     }
 
     @Override
@@ -72,14 +77,12 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
             connectRetry();
         }else{
             final int hours = 10;
-            //当连接发送次数大于一定值时将重建连接
-            //当连接创建时间大于一定值时也将重建连接
             long sendCount = getSendCount();
             if (getSendCount() > 100000) {
-                log.warn("APNS客户端已发送{}条通知，将重建连接",sendCount);
+                log.warn("already send {} messages，will reconnect",sendCount);
                 connectRetry();
             } else if (System.currentTimeMillis() - getCreateTime() > 3600*1000*hours) {
-                log.warn("APNS客户端连接已保持{}小时,共发送了{}条通知，将重建连接",hours, sendCount);
+                log.warn("already keep alive {} hours and send {} messages，will reconnect",hours, sendCount);
                 connectRetry();
             }
         }
@@ -180,8 +183,8 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         // Prepare the HTTP request headers.
         HttpFields requestFields = new HttpFields();
         requestFields.put("apns-id", UUID.randomUUID().toString());
-        requestFields.put("apns-expiration", "0");
-        requestFields.put("apns-priority", "10");
+        requestFields.put("apns-expiration",String.valueOf(apnsExpiration));
+        requestFields.put("apns-priority", String.valueOf(apnsPriority));
         requestFields.put("apns-topic", notification.getTopic()==null?this.topic:notification.getTopic());
         // Prepare the HTTP request object.
         MetaData.Request request = new MetaData.Request("POST", new HttpURI(URI_BASE + token), HttpVersion.HTTP_2, requestFields);
@@ -273,6 +276,9 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         private InputStream key;
         private int connectTimeout = 60;
         private int pushTimeout = 5;
+        private int apnsExpiration = 0;
+        private int apnsPriority = 10;
+        private int pushRetryTimes=3;
         private String topic;
         public Builder password(String password){
             this.password = password;
@@ -303,8 +309,23 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
             return this;
         }
 
+        public Builder pushRetryTimes(int pushRetryTimes){
+            this.pushRetryTimes = pushRetryTimes;
+            return this;
+        }
+
+        public Builder apnsExpiration(int apnsExpiration){
+            this.apnsExpiration = apnsExpiration;
+            return this;
+        }
+
+        public Builder apnsPriority(int apnsPriority){
+            this.apnsPriority = apnsPriority;
+            return this;
+        }
+
         public ApnsHttp2ClientImpl build(){
-            return new ApnsHttp2ClientImpl(password,key,connectTimeout,pushTimeout,topic);
+            return new ApnsHttp2ClientImpl(password,key,connectTimeout,pushTimeout,topic,pushRetryTimes,apnsExpiration,apnsPriority);
         }
     }
 }
