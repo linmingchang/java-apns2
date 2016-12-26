@@ -29,7 +29,6 @@ import javax.net.ssl.TrustManagerFactory;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
 import java.nio.charset.Charset;
 import java.security.KeyStore;
 import java.util.UUID;
@@ -49,15 +48,15 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     private Session session;
     private long sendCount;
     private long createTime;
-    private volatile boolean pingFailed = false;
     private final Object lock = new Object();
     private String password;
     private InputStream key;
-    private int connectTimeout;//second
+    private int connectTimeout;
     private int pushTimeout;
     private String topic;
     private static final int BACKOFF_MAX = 300000;
     private static final int BACKOFF_MIN = 3000;
+    private int pushRetryTimes=3;
 
     public ApnsHttp2ClientImpl(String password, InputStream key, int connectTimeout, int pushTimeout,String topic) {
         this.password = password;
@@ -76,10 +75,7 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
             //当连接发送次数大于一定值时将重建连接
             //当连接创建时间大于一定值时也将重建连接
             long sendCount = getSendCount();
-            if (isPingFailed()) {
-                log.warn("APNS客户端Ping失败，共发送了{}条通知，将重建连接",sendCount);
-                connectRetry();
-            } else if (getSendCount() > 100000) {
+            if (getSendCount() > 100000) {
                 log.warn("APNS客户端已发送{}条通知，将重建连接",sendCount);
                 connectRetry();
             } else if (System.currentTimeMillis() - getCreateTime() > 3600*1000*hours) {
@@ -97,7 +93,7 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
             http2Client.stop();
             http2Client = null;
         } catch (Exception ex) {
-            log.warn("关闭HTTP2连接失败,host={}", APNS_HOST, ex);
+            log.warn("stop error,host={}", APNS_HOST, ex);
         }
     }
 
@@ -108,7 +104,7 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
                 connect();
                 break;
             } catch (Exception ex) {
-                log.warn("连接APNS服务失败", ex);
+                log.warn("connect apns error", ex);
                 try {
                     Thread.sleep(backoff);
                 } catch (InterruptedException e) {
@@ -151,24 +147,36 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         log.info("APNS Client builded");
     }
 
-    @Override
-    public void push(String token,Notification notification, ResponseListener listener) {
-        try {
-            if(http2Client == null){
-                connectRetry();
-            }
-            pushs(token,notification,listener);
-        } catch (Exception ex) {
-            log.warn("推送失败", ex);
-            if (http2Client.isStarted() && ex.getCause() instanceof ClosedChannelException) {
-                stop();
+    private void retryPush(String token,Notification notification, ResponseListener listener){
+        int retryTimes = 0;
+        while (true){
+            try {
+                start();
+                request(token,notification,listener);
+                break;
+            } catch (Exception e) {
+                log.error("push error",e);
+                if(this.http2Client != null){
+                    stop();
+                }
+                if(retryTimes<pushRetryTimes){
+                    pushRetryTimes++;
+                    log.debug("retry,token:{},payload:{}",token,notification.getPayload());
+                }else{
+                    log.error("push error after retry {},token:{},payload:{}",pushRetryTimes,token,notification.getPayload());
+                    break;
+                }
             }
         }
     }
 
+    @Override
+    public void push(String token,Notification notification, ResponseListener listener) {
+        retryPush(token,notification,listener);
+    }
 
-    private void pushs(String token,Notification notification, ResponseListener listener) throws InterruptedException, TimeoutException, ExecutionException {
-        long start = System.currentTimeMillis();
+
+    private void request(String token,Notification notification, ResponseListener listener) throws InterruptedException, TimeoutException, ExecutionException {
         // Prepare the HTTP request headers.
         HttpFields requestFields = new HttpFields();
         requestFields.put("apns-id", UUID.randomUUID().toString());
@@ -184,7 +192,6 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
             HeadersFrame headersFrame = null;
             @Override
             public void onHeaders(Stream stream, HeadersFrame frame) {
-                log.warn("StreamListener.onHeader(),{}",frame.getMetaData());
                 headersFrame = frame;
                 MetaData meta = headersFrame.getMetaData();
                 if (meta.isResponse()) {
@@ -192,14 +199,12 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
                     int status = response.getStatus();
                     if (status == 200) {
                         listener.success(token,notification);
-                        log.warn("推送成功：{},{},{}",notification.getTopic(),token,notification.getPayload());
                     }
                 }
             }
 
             @Override
             public void onData(Stream stream, DataFrame frame, Callback callback) {
-                log.debug("StreamListener.onData()");
                 ByteBuffer buf = frame.getData();
                 String body = new String(buf.array(), 0, buf.remaining(), Charset.forName("UTF-8"));
                 if (headersFrame == null) {
@@ -212,12 +217,9 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
                     }
                     MetaData.Response response = (MetaData.Response)meta;
                     int status = response.getStatus();
-                    String msg = "status:"+status+", "+body;
                     if (status == 200) {
-                        log.warn("推送成功：{},{},{}",notification.getTopic(),token,notification.getPayload());
                         callback.succeeded();
                     } else {
-                        log.debug(body);
                         JSONParser parser = new JSONParser();
                         String reason = "";
                         try {
@@ -226,56 +228,41 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
                         } catch (ParseException e) {
                             e.printStackTrace();
                         }
-                        callback.failed(new Exception(msg));
+                        callback.failed(new Exception("status:"+status+", "+body));
                         listener.failure(token,notification,status,reason);
-                        //log.warn("推送失败：{},{},{},{}",msg,notification.getTopic(),token,notification.getTopic());
                     }
                 }
             }
+
+
         };
 
-        synchronized (lock) {
-            while (session.getStreams().size() >= 500) {
-                lock.wait(100);
-                if (System.currentTimeMillis() - start > pushTimeout) {
-                    throw new TimeoutException("timeout in waiting for streams count down to 500");
-                }
-            }
-            long waitTime = System.currentTimeMillis() - start;
-            if (waitTime > 3000) {
-                log.warn("ApnsHttp2Client wait {} ms for Streams count down to 500", waitTime);
-            }
-            sendCount++;
-            // Send the HEADERS frame to create a stream.
-            FuturePromise<Stream> streamPromise = new FuturePromise<>();
-            session.newStream(headersFrame, streamPromise, responseListener);
-            Stream stream = streamPromise.get(5, TimeUnit.SECONDS);
+        sendCount++;
+        // Send the HEADERS frame to create a stream.
+        FuturePromise<Stream> streamPromise = new FuturePromise<>();
+        session.newStream(headersFrame, streamPromise, responseListener);
+        Stream stream = streamPromise.get(pushTimeout, TimeUnit.SECONDS);
 
-            // Use the Stream object to send request content, if any, using a DATA frame.
-            ByteBuffer content = ByteBuffer.wrap(notification.getPayload().getBytes(Charset.forName("UTF-8")));
-            DataFrame requestContent = new DataFrame(stream.getId(), content, true);
-            stream.data(requestContent, new Callback() {
-                //Stream发送状态的的回调
-                public void succeeded() {
-                    log.debug("stream.data Callback.succeed");
-                }
+        // Use the Stream object to send request content, if any, using a DATA frame.
+        ByteBuffer content = ByteBuffer.wrap(notification.getPayload().getBytes(Charset.forName("UTF-8")));
+        DataFrame requestContent = new DataFrame(stream.getId(), content, true);
+        stream.data(requestContent, new Callback() {
+            @Override
+            public void succeeded() {
 
-                public void failed(Throwable ex) {
-                    pingFailed = true;
-                    log.warn("推送失败:{},{},{}", notification.getTopic(), token, notification.getPayload(), ex);
-                }
-            });
-        }
+            }
+
+            @Override
+            public void failed(Throwable x) {
+
+            }
+        });
     }
 
     public long getSendCount() {
         return sendCount;
     }
 
-
-    public boolean isPingFailed() {
-        return pingFailed;
-    }
 
     public long getCreateTime() {
         return createTime;
@@ -284,8 +271,8 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     public static class Builder{
         private String password;
         private InputStream key;
-        private int connectTimeout;
-        private int pushTimeout;
+        private int connectTimeout = 60;
+        private int pushTimeout = 5;
         private String topic;
         public Builder password(String password){
             this.password = password;
