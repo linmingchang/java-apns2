@@ -115,16 +115,6 @@ public class Payload {
         }
     }
 
-    public static void main(String[] args) {
-        Payload payload = new Payload();
-        payload.setAlert("How are you?");
-        payload.setBadge(1);
-        payload.setSound("a");
-        payload.addParam("para1", "1231dfasfwer");
-        payload.addParam("number", 12312312312L);
-        System.out.println(payload.toString());
-    }
-
     public String getAlertBody() {
         return alertBody;
     }
