@@ -23,28 +23,28 @@ ApnsHttp2ClientImpl client = new ApnsHttp2ClientImpl.Builder()
                 .build()
                 .start();
 
-        Notification notification = new Notification.Builder()
-                .alertBody("hello")
-                .alertTitle("titletest")
-                .badge(1)
-                .build();
+Notification notification = new Notification.Builder()
+        .alertBody("hello")
+        .alertTitle("titletest")
+        .badge(1)
+        .build();
 
-        client.push("afae802f3bb27e5606c74495453bb4534fc36c5606f663ad4b92afe392e5d7d2", notification, new ResponseListener() {
-            @Override
-            public void success(String deviceToken,Notification notification) {
-                System.out.println(notification.getPayload());
-            }
+client.push("afae802f3bb27e5606c74495453bb4534fc36c5606f663ad4b92afe392e5d7d2", notification, new ResponseListener() {
+    @Override
+    public void success(String deviceToken,Notification notification) {
+        System.out.println(notification.getPayload());
+    }
 
-            @Override
-            public void failure(String deviceToken,Notification notification,int status,String reason) {
-                System.out.println("status:"+status+" reason:"+reason);
-            }
-        });
+    @Override
+    public void failure(String deviceToken,Notification notification,int status,String reason) {
+        System.out.println("status:"+status+" reason:"+reason);
+    }
+});
 
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        client.stop();
+try {
+    Thread.sleep(10000);
+} catch (InterruptedException e) {
+    e.printStackTrace();
+}
+client.stop();
 ```
