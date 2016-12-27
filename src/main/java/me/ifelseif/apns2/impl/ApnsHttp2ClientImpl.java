@@ -59,6 +59,7 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     private int pushRetryTimes;
     private int apnsExpiration;
     private int apnsPriority;
+    private SslContextFactory sslContextFactory;
 
     public ApnsHttp2ClientImpl(String password, InputStream key, int connectTimeout, int pushTimeout,String topic,int pushRetryTimes,int apnsExpiration,int apnsPriority) {
         this.password = password;
@@ -119,7 +120,23 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         }
     }
 
-    private void connect() throws Exception{
+    private void connect() throws Exception {
+        if(sslContextFactory==null){
+            initSslContextFactory();
+        }
+        this.http2Client = new HTTP2Client();
+        this.http2Client.start();
+
+        FuturePromise<Session> sessionPromise = new FuturePromise<>();
+        this.http2Client.connect(sslContextFactory, new InetSocketAddress(APNS_HOST, APNS_PORT), new ServerSessionListener.Adapter(), sessionPromise);
+        // Obtain the client Session object.
+        session = sessionPromise.get(connectTimeout, TimeUnit.SECONDS);
+        createTime = System.currentTimeMillis();
+        sendCount = 0L;
+        log.info("APNS Client builded");
+    }
+
+    private void initSslContextFactory() throws Exception {
         //init KeyStore
         final char[] pwdChars = password.toCharArray();
         final KeyStore keyStore = KeyStore.getInstance("PKCS12");
@@ -134,20 +151,9 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
         sslContext.init(keyManagerFactory.getKeyManagers(), trustManagers, null);
 
-        final SslContextFactory sslContextFactory = new SslContextFactory(true);
+        sslContextFactory = new SslContextFactory(true);
         sslContextFactory.setSslContext(sslContext);
         sslContextFactory.start();
-
-        this.http2Client = new HTTP2Client();
-        this.http2Client.start();
-
-        FuturePromise<Session> sessionPromise = new FuturePromise<>();
-        this.http2Client.connect(sslContextFactory, new InetSocketAddress(APNS_HOST, APNS_PORT), new ServerSessionListener.Adapter(), sessionPromise);
-        // Obtain the client Session object.
-        session = sessionPromise.get(connectTimeout, TimeUnit.SECONDS);
-        createTime = System.currentTimeMillis();
-        sendCount = 0L;
-        log.info("APNS Client builded");
     }
 
     private void retryPush(String token,Notification notification, ResponseListener listener){
@@ -163,10 +169,10 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
                     stop();
                 }
                 if(retryTimes<pushRetryTimes){
-                    pushRetryTimes++;
-                    log.debug("retry,token:{},payload:{}",token,notification.getPayload());
+                    retryTimes++;
+                    log.warn("retry:{},token:{},payload:{}",retryTimes,token,notification.getPayload());
                 }else{
-                    log.error("push error after retry {},token:{},payload:{}",pushRetryTimes,token,notification.getPayload());
+                    log.error("push error after retry {},token:{},payload:{}",retryTimes,token,notification.getPayload());
                     break;
                 }
             }
@@ -286,7 +292,7 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         }
 
         public Builder key(String key){
-            InputStream is = getClass().getResourceAsStream(key);
+            InputStream is = ApnsHttp2ClientImpl.Builder.class.getClassLoader().getResourceAsStream(key);
             if (is == null) {
                 throw new IllegalArgumentException("Keystore file not found. " + key);
             }
