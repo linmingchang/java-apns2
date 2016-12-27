@@ -10,7 +10,7 @@ import me.ifelseif.apns2.model.Notification;
 public class Demo {
     public static void main(String[] args){
         ApnsHttp2ClientImpl client = new ApnsHttp2ClientImpl.Builder()
-                .key("/production-195-0.p12")
+                .key("production-195-0.p12")
                 .password("apple")
                 .topic("com.weather.NOBWeather")
                 .build()

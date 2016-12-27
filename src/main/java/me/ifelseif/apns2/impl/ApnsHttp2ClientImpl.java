@@ -13,6 +13,7 @@ import org.eclipse.jetty.http2.api.server.ServerSessionListener;
 import org.eclipse.jetty.http2.client.HTTP2Client;
 import org.eclipse.jetty.http2.frames.DataFrame;
 import org.eclipse.jetty.http2.frames.HeadersFrame;
+import org.eclipse.jetty.http2.frames.PingFrame;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.FuturePromise;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -31,6 +32,8 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.KeyStore;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -60,6 +63,8 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     private int apnsExpiration;
     private int apnsPriority;
     private SslContextFactory sslContextFactory;
+    private volatile boolean pingFailed = false;
+    private Timer timer;
 
     public ApnsHttp2ClientImpl(String password, InputStream key, int connectTimeout, int pushTimeout,String topic,int pushRetryTimes,int apnsExpiration,int apnsPriority) {
         this.password = password;
@@ -79,7 +84,10 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         }else{
             final int hours = 10;
             long sendCount = getSendCount();
-            if (getSendCount() > 100000) {
+            if(pingFailed){
+                log.warn("ping failed ,already send {} messages，will reconnect",sendCount);
+                connectRetry();
+            } else if (getSendCount() > 100000) {
                 log.warn("already send {} messages，will reconnect",sendCount);
                 connectRetry();
             } else if (System.currentTimeMillis() - getCreateTime() > 3600*1000*hours) {
@@ -96,6 +104,8 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         try {
             http2Client.stop();
             http2Client = null;
+            timer.cancel();
+            timer = null;
         } catch (Exception ex) {
             log.warn("stop error,host={}", APNS_HOST, ex);
         }
@@ -118,6 +128,32 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
                 backoff = backoff > BACKOFF_MAX ? BACKOFF_MAX : backoff * 2;
             }
         }
+        //start ping
+        if(timer==null){
+            timer = new Timer(true);
+        }
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                ping();
+            }
+        },1000,10000);
+    }
+
+    public void ping() {
+        session.ping(new PingFrame(System.currentTimeMillis(), false), new Callback() {
+            @Override
+            public void failed(Throwable x) {
+                log.warn("ping failed",x);
+                pingFailed = true;
+                stop();
+            }
+
+            @Override
+            public void succeeded() {
+                log.info("ping succcess");
+            }
+        });
     }
 
     private void connect() throws Exception {
@@ -133,7 +169,7 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         session = sessionPromise.get(connectTimeout, TimeUnit.SECONDS);
         createTime = System.currentTimeMillis();
         sendCount = 0L;
-        log.info("APNS Client builded");
+        log.info("APNS Client build");
     }
 
     private void initSslContextFactory() throws Exception {
@@ -246,7 +282,6 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
 
         };
 
-        sendCount++;
         // Send the HEADERS frame to create a stream.
         FuturePromise<Stream> streamPromise = new FuturePromise<>();
         session.newStream(headersFrame, streamPromise, responseListener);
@@ -266,6 +301,7 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
 
             }
         });
+        sendCount++;
     }
 
     public long getSendCount() {
