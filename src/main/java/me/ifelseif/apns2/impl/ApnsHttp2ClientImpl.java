@@ -23,15 +23,9 @@ import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.security.KeyStore;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
@@ -52,8 +46,6 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     private long sendCount;
     private long createTime;
     private final Object lock = new Object();
-    private String password;
-    private InputStream key;
     private int connectTimeout;
     private int pushTimeout;
     private String topic;
@@ -66,15 +58,14 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     private volatile boolean pingFailed = false;
     private Timer timer;
 
-    public ApnsHttp2ClientImpl(String password, InputStream key, int connectTimeout, int pushTimeout,String topic,int pushRetryTimes,int apnsExpiration,int apnsPriority) {
-        this.password = password;
-        this.key = key;
+    public ApnsHttp2ClientImpl(SslContextFactory sslContextFactory, int connectTimeout, int pushTimeout,String topic,int pushRetryTimes,int apnsExpiration,int apnsPriority) {
         this.connectTimeout = connectTimeout;
         this.pushTimeout = pushTimeout;
         this.topic = topic;
         this.pushRetryTimes = pushRetryTimes;
         this.apnsExpiration = apnsExpiration;
         this.apnsPriority = apnsPriority;
+        this.sslContextFactory = sslContextFactory;
     }
 
     @Override
@@ -102,10 +93,14 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     @Override
     public void stop() {
         try {
-            http2Client.stop();
-            http2Client = null;
-            timer.cancel();
-            timer = null;
+            if(http2Client!=null){
+                http2Client.stop();
+                http2Client = null;
+            }
+            if(timer!=null){
+                timer.cancel();
+                timer = null;
+            }
         } catch (Exception ex) {
             log.warn("stop error,host={}", APNS_HOST, ex);
         }
@@ -157,9 +152,6 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     }
 
     private void connect() throws Exception {
-        if(sslContextFactory==null){
-            initSslContextFactory();
-        }
         this.http2Client = new HTTP2Client();
         this.http2Client.start();
 
@@ -170,26 +162,6 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         createTime = System.currentTimeMillis();
         sendCount = 0L;
         log.info("APNS Client build");
-    }
-
-    private void initSslContextFactory() throws Exception {
-        //init KeyStore
-        final char[] pwdChars = password.toCharArray();
-        final KeyStore keyStore = KeyStore.getInstance("PKCS12");
-        keyStore.load(key, pwdChars);
-        final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
-        keyManagerFactory.init(keyStore, pwdChars);
-        //init TrustManager
-        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
-        trustManagerFactory.init((KeyStore) null);
-        TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-        //init SSLContext
-        final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagers, null);
-
-        sslContextFactory = new SslContextFactory(true);
-        sslContextFactory.setSslContext(sslContext);
-        sslContextFactory.start();
     }
 
     private void retryPush(String token,Notification notification, ResponseListener listener){
@@ -311,63 +283,5 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
 
     public long getCreateTime() {
         return createTime;
-    }
-
-    public static class Builder{
-        private String password;
-        private InputStream key;
-        private int connectTimeout = 60;
-        private int pushTimeout = 5;
-        private int apnsExpiration = 0;
-        private int apnsPriority = 10;
-        private int pushRetryTimes=3;
-        private String topic;
-        public Builder password(String password){
-            this.password = password;
-            return this;
-        }
-
-        public Builder key(String key){
-            InputStream is = ApnsHttp2ClientImpl.Builder.class.getClassLoader().getResourceAsStream(key);
-            if (is == null) {
-                throw new IllegalArgumentException("Keystore file not found. " + key);
-            }
-            this.key = is;
-            return this;
-        }
-
-        public Builder connectTimeout(int connectTimeout){
-            this.connectTimeout = connectTimeout;
-            return this;
-        }
-
-        public Builder pushTimeout(int pushTimeout){
-            this.pushTimeout = pushTimeout;
-            return this;
-        }
-
-        public Builder topic(String topic){
-            this.topic = topic;
-            return this;
-        }
-
-        public Builder pushRetryTimes(int pushRetryTimes){
-            this.pushRetryTimes = pushRetryTimes;
-            return this;
-        }
-
-        public Builder apnsExpiration(int apnsExpiration){
-            this.apnsExpiration = apnsExpiration;
-            return this;
-        }
-
-        public Builder apnsPriority(int apnsPriority){
-            this.apnsPriority = apnsPriority;
-            return this;
-        }
-
-        public ApnsHttp2ClientImpl build(){
-            return new ApnsHttp2ClientImpl(password,key,connectTimeout,pushTimeout,topic,pushRetryTimes,apnsExpiration,apnsPriority);
-        }
     }
 }
