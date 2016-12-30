@@ -15,6 +15,7 @@ public class Apns2Config {
     private int pushRetryTimes;
     private int apnsExpiration;
     private int apnsPriority;
+    private int poolSize;
 
     public String getPassword() {
         return password;
@@ -80,7 +81,15 @@ public class Apns2Config {
         this.apnsPriority = apnsPriority;
     }
 
-    public Apns2Config(String password, InputStream key, int connectTimeout, int pushTimeout, String topic, int pushRetryTimes, int apnsExpiration, int apnsPriority) {
+    public int getPoolSize() {
+        return poolSize;
+    }
+
+    public void setPoolSize(int poolSize) {
+        this.poolSize = poolSize;
+    }
+
+    public Apns2Config(String password, InputStream key, int connectTimeout, int pushTimeout, String topic, int pushRetryTimes, int apnsExpiration, int apnsPriority, int poolSize) {
         this.password = password;
         this.key = key;
         this.connectTimeout = connectTimeout;
@@ -89,6 +98,7 @@ public class Apns2Config {
         this.pushRetryTimes = pushRetryTimes;
         this.apnsExpiration = apnsExpiration;
         this.apnsPriority = apnsPriority;
+        this.poolSize = poolSize;
     }
 
     public static class Builder{
@@ -100,6 +110,7 @@ public class Apns2Config {
         private int apnsPriority = 10;
         private int pushRetryTimes=3;
         private String topic;
+        private int poolSize;
         public Apns2Config.Builder password(String password){
             this.password = password;
             return this;
@@ -144,8 +155,13 @@ public class Apns2Config {
             return this;
         }
 
+        public Apns2Config.Builder poolSize(int poolSize){
+            this.poolSize = poolSize;
+            return this;
+        }
+
         public Apns2Config build(){
-            return new Apns2Config(password,key,connectTimeout,pushTimeout,topic,pushRetryTimes,apnsExpiration,apnsPriority);
+            return new Apns2Config(password,key,connectTimeout,pushTimeout,topic,pushRetryTimes,apnsExpiration,apnsPriority,poolSize);
         }
     }
 }

@@ -19,47 +19,47 @@ import javax.net.ssl.TrustManagerFactory;
 /**
  * Created by linmingchang on 16/12/29.
  */
-public class ApnsHttp2ClientPool implements Closeable{
+public class ApnsHttp2ClientPool implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(ApnsHttp2ClientPool.class);
     private BlockingDeque<ApnsHttp2Client> pool = null;
     private SslContextFactory sslContextFactory = null;
 
-    private ApnsHttp2ClientPool(Apns2Config config){
+    private ApnsHttp2ClientPool(Apns2Config config) {
         try {
-            sslContextFactory = ApnsHttp2ClientPool.getSslContextFactory(config.getPassword(),config.getKey());
+            sslContextFactory = ApnsHttp2ClientPool.getSslContextFactory(config.getPassword(), config.getKey());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("create sslContextFactory error.", e);
         }
 
-        pool = new LinkedBlockingDeque<>(5);
-        for (int i=0;i<5;i++){
-            ApnsHttp2ClientImpl client = new ApnsHttp2ClientImpl(sslContextFactory,config.getConnectTimeout(),config.getPushTimeout(),config.getTopic(),config.getPushRetryTimes(),config.getApnsExpiration(),config.getApnsPriority());
+        pool = new LinkedBlockingDeque<>(config.getPoolSize());
+        for (int i = 0; i < config.getPoolSize(); i++) {
+            ApnsHttp2ClientImpl client = new ApnsHttp2ClientImpl(sslContextFactory, config.getConnectTimeout(), config.getPushTimeout(), config.getTopic(), config.getPushRetryTimes(), config.getApnsExpiration(), config.getApnsPriority());
             pool.add(client);
         }
     }
 
-    public ApnsHttp2Client borrowClient(){
+    public ApnsHttp2Client borrowClient() {
         try {
             return pool.take();
         } catch (InterruptedException e) {
-            log.error("borrow client error",e);
+            log.error("borrow client error", e);
         }
         return null;
     }
 
-    public void returnClient(ApnsHttp2Client client){
-        if(client != null){
+    public void returnClient(ApnsHttp2Client client) {
+        if (client != null) {
             pool.add(client);
         }
     }
 
     @Override
-    public void close(){
-        while (!pool.isEmpty()){
+    public void close() {
+        while (!pool.isEmpty()) {
             try {
                 pool.take().stop();
             } catch (InterruptedException e) {
-                log.error("stop client error",e);
+                log.error("stop client error", e);
             }
         }
     }
@@ -86,7 +86,7 @@ public class ApnsHttp2ClientPool implements Closeable{
         return sslContextFactory;
     }
 
-    public static ApnsHttp2ClientPool newClientPool(Apns2Config config){
+    public static ApnsHttp2ClientPool newClientPool(Apns2Config config) {
         return new ApnsHttp2ClientPool(config);
     }
 }

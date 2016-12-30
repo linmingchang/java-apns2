@@ -15,6 +15,7 @@ public class Demo {
                 .key("production-195-0.p12")
                 .password("apple")
                 .topic("com.weather.NOBWeather")
+                .poolSize(2)
                 .build();
 
         ApnsHttp2Service service = new ApnsHttp2ServiceImpl(config);
