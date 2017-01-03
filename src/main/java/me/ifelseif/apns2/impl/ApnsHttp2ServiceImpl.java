@@ -15,13 +15,13 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by linmingchang on 16/12/29.
  */
-public class ApnsHttp2ServiceImpl implements ApnsHttp2Service{
+public class ApnsHttp2ServiceImpl implements ApnsHttp2Service {
     private static final Logger log = LoggerFactory.getLogger(ApnsHttp2ServiceImpl.class);
     private ExecutorService service = null;
     private ApnsHttp2ClientPool clientPool = null;
 
-    public ApnsHttp2ServiceImpl(Apns2Config config){
-        service = Executors.newFixedThreadPool(5);
+    public ApnsHttp2ServiceImpl(Apns2Config config) {
+        service = Executors.newFixedThreadPool(config.getPoolSize());
         clientPool = ApnsHttp2ClientPool.newClientPool(config);
     }
 
@@ -31,11 +31,11 @@ public class ApnsHttp2ServiceImpl implements ApnsHttp2Service{
             @Override
             public void run() {
                 ApnsHttp2Client client = null;
-                try{
+                try {
                     client = clientPool.borrowClient();
-                    client.push(token,notification,listener);
-                }finally {
-                    if(client!=null){
+                    client.push(token, notification, listener);
+                } finally {
+                    if (client != null) {
                         clientPool.returnClient(client);
                     }
                 }

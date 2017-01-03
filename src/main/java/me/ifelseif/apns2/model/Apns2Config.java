@@ -101,22 +101,23 @@ public class Apns2Config {
         this.poolSize = poolSize;
     }
 
-    public static class Builder{
+    public static class Builder {
         private String password;
         private InputStream key;
         private int connectTimeout = 60;
         private int pushTimeout = 5;
         private int apnsExpiration = 0;
         private int apnsPriority = 10;
-        private int pushRetryTimes=3;
+        private int pushRetryTimes = 3;
         private String topic;
         private int poolSize;
-        public Apns2Config.Builder password(String password){
+
+        public Apns2Config.Builder password(String password) {
             this.password = password;
             return this;
         }
 
-        public Apns2Config.Builder key(String key){
+        public Apns2Config.Builder key(String key) {
             InputStream is = Apns2Config.Builder.class.getClassLoader().getResourceAsStream(key);
             if (is == null) {
                 throw new IllegalArgumentException("Keystore file not found. " + key);
@@ -125,43 +126,43 @@ public class Apns2Config {
             return this;
         }
 
-        public Apns2Config.Builder connectTimeout(int connectTimeout){
+        public Apns2Config.Builder connectTimeout(int connectTimeout) {
             this.connectTimeout = connectTimeout;
             return this;
         }
 
-        public Apns2Config.Builder pushTimeout(int pushTimeout){
+        public Apns2Config.Builder pushTimeout(int pushTimeout) {
             this.pushTimeout = pushTimeout;
             return this;
         }
 
-        public Apns2Config.Builder topic(String topic){
+        public Apns2Config.Builder topic(String topic) {
             this.topic = topic;
             return this;
         }
 
-        public Apns2Config.Builder pushRetryTimes(int pushRetryTimes){
+        public Apns2Config.Builder pushRetryTimes(int pushRetryTimes) {
             this.pushRetryTimes = pushRetryTimes;
             return this;
         }
 
-        public Apns2Config.Builder apnsExpiration(int apnsExpiration){
+        public Apns2Config.Builder apnsExpiration(int apnsExpiration) {
             this.apnsExpiration = apnsExpiration;
             return this;
         }
 
-        public Apns2Config.Builder apnsPriority(int apnsPriority){
+        public Apns2Config.Builder apnsPriority(int apnsPriority) {
             this.apnsPriority = apnsPriority;
             return this;
         }
 
-        public Apns2Config.Builder poolSize(int poolSize){
+        public Apns2Config.Builder poolSize(int poolSize) {
             this.poolSize = poolSize;
             return this;
         }
 
-        public Apns2Config build(){
-            return new Apns2Config(password,key,connectTimeout,pushTimeout,topic,pushRetryTimes,apnsExpiration,apnsPriority,poolSize);
+        public Apns2Config build() {
+            return new Apns2Config(password, key, connectTimeout, pushTimeout, topic, pushRetryTimes, apnsExpiration, apnsPriority, poolSize);
         }
     }
 }

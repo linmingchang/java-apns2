@@ -40,59 +40,62 @@ public class Notification {
         this.topic = topic;
     }
 
-    public static class Builder{
+    public static class Builder {
         private Payload payload;
         private String token;
         private String topic;
 
-        public Builder(){
+        public Builder() {
             payload = new Payload();
         }
 
-        public Builder alert(String alert){
+        public Builder alert(String alert) {
             payload.setAlert(alert);
             return this;
         }
 
-        public Builder badge(int badge){
+        public Builder badge(int badge) {
             payload.setBadge(badge);
             return this;
         }
 
-        public Builder sound(String sound){
+        public Builder sound(String sound) {
             payload.setSound(sound);
             return this;
         }
 
-        public Builder alertActionLocKey(String actionLocKey){
+        public Builder alertActionLocKey(String actionLocKey) {
             payload.setAlertActionLocKey(actionLocKey);
             return this;
         }
 
-        public Builder alertBody(String body){
+        public Builder alertBody(String body) {
             payload.setAlertBody(body);
             return this;
         }
 
-        public Builder alertTitle(String title){
+        public Builder alertTitle(String title) {
             payload.setAlertTitle(title);
             return this;
         }
 
-        public Builder alertLocKey(String locKey){
+        public Builder alertLocKey(String locKey) {
             payload.setAlertLocKey(locKey);
             return this;
         }
-        public Builder alertLocArgs(String[] locArgs){
+
+        public Builder alertLocArgs(String[] locArgs) {
             payload.setAlertLocArgs(locArgs);
             return this;
         }
-        public Builder alertLaunchImage(String launchImagee){
+
+        public Builder alertLaunchImage(String launchImagee) {
             payload.setAlertLaunchImage(launchImagee);
             return this;
         }
-        public Builder addParam(String key,String value){
-            payload.addParam(key,value);
+
+        public Builder addParam(String key, String value) {
+            payload.addParam(key, value);
             return this;
         }
 
@@ -106,18 +109,18 @@ public class Notification {
             return this;
         }
 
-        public Builder token(String token){
+        public Builder token(String token) {
             this.token = token;
-            return  this;
+            return this;
         }
 
-        public Builder topic(String topic){
+        public Builder topic(String topic) {
             this.topic = topic;
             return this;
         }
 
-        public Notification build(){
-            return new Notification(payload.toString(),token,topic);
+        public Notification build() {
+            return new Notification(payload.toString(), token, topic);
         }
     }
 }

@@ -7,6 +7,8 @@ import me.ifelseif.apns2.model.Notification;
  */
 public interface ApnsHttp2Client {
     ApnsHttp2Client start();
+
     void stop();
-    void push(String token,Notification notification,ResponseListener listener);
+
+    void push(String token, Notification notification, ResponseListener listener);
 }

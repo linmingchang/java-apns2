@@ -10,7 +10,7 @@ import me.ifelseif.apns2.model.Notification;
  * Created by linmingchang on 16/12/20.
  */
 public class Demo {
-    public static void main(String[] args){
+    public static void main(String[] args) {
         Apns2Config config = new Apns2Config.Builder()
                 .key("production-195-0.p12")
                 .password("apple")
@@ -28,13 +28,13 @@ public class Demo {
 
         service.push("afae802f3bb27e5606c74495453bb4534fc36c5606f663ad4b92afe392e5d7d2", notification, new ResponseListener() {
             @Override
-            public void success(String deviceToken,Notification notification) {
+            public void success(String deviceToken, Notification notification) {
                 System.out.println(notification.getPayload());
             }
 
             @Override
-            public void failure(String deviceToken,Notification notification,int status,String reason) {
-                System.out.println("status:"+status+" reason:"+reason);
+            public void failure(String deviceToken, Notification notification, int status, String reason) {
+                System.out.println("status:" + status + " reason:" + reason);
             }
         });
 

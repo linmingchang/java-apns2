@@ -58,7 +58,7 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     private volatile boolean pingFailed = false;
     private Timer timer;
 
-    public ApnsHttp2ClientImpl(SslContextFactory sslContextFactory, int connectTimeout, int pushTimeout,String topic,int pushRetryTimes,int apnsExpiration,int apnsPriority) {
+    public ApnsHttp2ClientImpl(SslContextFactory sslContextFactory, int connectTimeout, int pushTimeout, String topic, int pushRetryTimes, int apnsExpiration, int apnsPriority) {
         this.connectTimeout = connectTimeout;
         this.pushTimeout = pushTimeout;
         this.topic = topic;
@@ -69,20 +69,20 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     }
 
     @Override
-    public ApnsHttp2ClientImpl start(){
-        if(http2Client ==null){
+    public ApnsHttp2ClientImpl start() {
+        if (http2Client == null) {
             connectRetry();
-        }else{
+        } else {
             final int hours = 10;
             long sendCount = getSendCount();
-            if(pingFailed){
-                log.warn("ping failed ,already send {} messages，will reconnect",sendCount);
+            if (pingFailed) {
+                log.warn("ping failed ,already send {} messages，will reconnect", sendCount);
                 connectRetry();
             } else if (getSendCount() > 100000) {
-                log.warn("already send {} messages，will reconnect",sendCount);
+                log.warn("already send {} messages，will reconnect", sendCount);
                 connectRetry();
-            } else if (System.currentTimeMillis() - getCreateTime() > 3600*1000*hours) {
-                log.warn("already keep alive {} hours and send {} messages，will reconnect",hours, sendCount);
+            } else if (System.currentTimeMillis() - getCreateTime() > 3600 * 1000 * hours) {
+                log.warn("already keep alive {} hours and send {} messages，will reconnect", hours, sendCount);
                 connectRetry();
             }
         }
@@ -93,11 +93,11 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     @Override
     public void stop() {
         try {
-            if(http2Client!=null){
+            if (http2Client != null) {
                 http2Client.stop();
                 http2Client = null;
             }
-            if(timer!=null){
+            if (timer != null) {
                 timer.cancel();
                 timer = null;
             }
@@ -106,9 +106,9 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         }
     }
 
-    private void connectRetry(){
+    private void connectRetry() {
         int backoff = BACKOFF_MIN;
-        while(true) {
+        while (true) {
             try {
                 connect();
                 break;
@@ -124,7 +124,7 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
             }
         }
         //start ping
-        if(timer==null){
+        if (timer == null) {
             timer = new Timer(true);
         }
         timer.schedule(new TimerTask() {
@@ -132,14 +132,14 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
             public void run() {
                 ping();
             }
-        },1000,10000);
+        }, 1000, 10000);
     }
 
     public void ping() {
         session.ping(new PingFrame(System.currentTimeMillis(), false), new Callback() {
             @Override
             public void failed(Throwable x) {
-                log.warn("ping failed",x);
+                log.warn("ping failed", x);
                 pingFailed = true;
                 stop();
             }
@@ -164,23 +164,23 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         log.info("APNS Client build");
     }
 
-    private void retryPush(String token,Notification notification, ResponseListener listener){
+    private void retryPush(String token, Notification notification, ResponseListener listener) {
         int retryTimes = 0;
-        while (true){
+        while (true) {
             try {
                 start();
-                request(token,notification,listener);
+                request(token, notification, listener);
                 break;
             } catch (Exception e) {
-                log.error("push error",e);
-                if(this.http2Client != null){
+                log.error("push error", e);
+                if (this.http2Client != null) {
                     stop();
                 }
-                if(retryTimes<pushRetryTimes){
+                if (retryTimes < pushRetryTimes) {
                     retryTimes++;
-                    log.warn("retry:{},token:{},payload:{}",retryTimes,token,notification.getPayload());
-                }else{
-                    log.error("push error after retry {},token:{},payload:{}",retryTimes,token,notification.getPayload());
+                    log.warn("retry:{},token:{},payload:{}", retryTimes, token, notification.getPayload());
+                } else {
+                    log.error("push error after retry {},token:{},payload:{}", retryTimes, token, notification.getPayload());
                     break;
                 }
             }
@@ -188,18 +188,18 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     }
 
     @Override
-    public void push(String token,Notification notification, ResponseListener listener) {
-        retryPush(token,notification,listener);
+    public void push(String token, Notification notification, ResponseListener listener) {
+        retryPush(token, notification, listener);
     }
 
 
-    private void request(String token,Notification notification, ResponseListener listener) throws InterruptedException, TimeoutException, ExecutionException {
+    private void request(String token, Notification notification, ResponseListener listener) throws InterruptedException, TimeoutException, ExecutionException {
         // Prepare the HTTP request headers.
         HttpFields requestFields = new HttpFields();
         requestFields.put("apns-id", UUID.randomUUID().toString());
-        requestFields.put("apns-expiration",String.valueOf(apnsExpiration));
+        requestFields.put("apns-expiration", String.valueOf(apnsExpiration));
         requestFields.put("apns-priority", String.valueOf(apnsPriority));
-        requestFields.put("apns-topic", notification.getTopic()==null?this.topic:notification.getTopic());
+        requestFields.put("apns-topic", notification.getTopic() == null ? this.topic : notification.getTopic());
         // Prepare the HTTP request object.
         MetaData.Request request = new MetaData.Request("POST", new HttpURI(URI_BASE + token), HttpVersion.HTTP_2, requestFields);
         // Create the HTTP/2 HEADERS frame representing the HTTP request.
@@ -207,15 +207,16 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         // Prepare the listener to receive the HTTP response frames.
         Stream.Listener responseListener = new Stream.Listener.Adapter() {
             HeadersFrame headersFrame = null;
+
             @Override
             public void onHeaders(Stream stream, HeadersFrame frame) {
                 headersFrame = frame;
                 MetaData meta = headersFrame.getMetaData();
                 if (meta.isResponse()) {
-                    MetaData.Response response = (MetaData.Response)meta;
+                    MetaData.Response response = (MetaData.Response) meta;
                     int status = response.getStatus();
                     if (status == 200) {
-                        listener.success(token,notification);
+                        listener.success(token, notification);
                     }
                 }
             }
@@ -232,7 +233,7 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
                     synchronized (lock) {
                         lock.notifyAll();
                     }
-                    MetaData.Response response = (MetaData.Response)meta;
+                    MetaData.Response response = (MetaData.Response) meta;
                     int status = response.getStatus();
                     if (status == 200) {
                         callback.succeeded();
@@ -245,8 +246,8 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
                         } catch (ParseException e) {
                             e.printStackTrace();
                         }
-                        callback.failed(new Exception("status:"+status+", "+body));
-                        listener.failure(token,notification,status,reason);
+                        callback.failed(new Exception("status:" + status + ", " + body));
+                        listener.failure(token, notification, status, reason);
                     }
                 }
             }

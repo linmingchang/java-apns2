@@ -7,5 +7,6 @@ import me.ifelseif.apns2.model.Notification;
  */
 public interface ApnsHttp2Service {
     void shutdown();
+
     void push(String token, Notification notification, ResponseListener listener);
 }
