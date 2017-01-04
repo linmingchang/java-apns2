@@ -157,14 +157,18 @@ public class Payload {
     }
 
     public String[] getAlertLocArgs() {
-        return alertLocArgs.clone();
+        if (alertLocArgs == null) {
+            return null;
+        } else {
+            return alertLocArgs.clone();
+        }
     }
 
     public void setAlertLocArgs(String[] alertLocArgs) {
-        if(alertLocArgs == null){
+        if (alertLocArgs == null) {
             this.alertLocArgs = new String[0];
         } else {
-            this.alertLocArgs = Arrays.copyOf(alertLocArgs,alertLocArgs.length);
+            this.alertLocArgs = Arrays.copyOf(alertLocArgs, alertLocArgs.length);
         }
     }
 

@@ -46,11 +46,11 @@ public final class Demo {
         service.shutdown();
     }
 
-    private Demo(){
+    private Demo() {
 
     }
 
-    public static Demo getInstance(){
+    public static Demo getInstance() {
         return new Demo();
     }
 }
