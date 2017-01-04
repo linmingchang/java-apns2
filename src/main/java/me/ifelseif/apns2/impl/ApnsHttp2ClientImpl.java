@@ -46,15 +46,15 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     private long sendCount;
     private long createTime;
     private final Object lock = new Object();
-    private int connectTimeout;
-    private int pushTimeout;
-    private String topic;
+    private final int connectTimeout;
+    private final int pushTimeout;
+    private final String topic;
     private static final int BACKOFF_MAX = 300000;
     private static final int BACKOFF_MIN = 3000;
-    private int pushRetryTimes;
-    private int apnsExpiration;
-    private int apnsPriority;
-    private SslContextFactory sslContextFactory;
+    private final int pushRetryTimes;
+    private final int apnsExpiration;
+    private final int apnsPriority;
+    private final SslContextFactory sslContextFactory;
     private volatile boolean pingFailed = false;
     private Timer timer;
 
@@ -251,8 +251,6 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
                     }
                 }
             }
-
-
         };
 
         // Send the HEADERS frame to create a stream.
@@ -266,12 +264,12 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
         stream.data(requestContent, new Callback() {
             @Override
             public void succeeded() {
-
+                log.debug("success");
             }
 
             @Override
             public void failed(Throwable x) {
-
+                log.debug("error",x);
             }
         });
         sendCount++;

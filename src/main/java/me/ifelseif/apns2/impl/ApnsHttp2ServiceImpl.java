@@ -17,8 +17,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class ApnsHttp2ServiceImpl implements ApnsHttp2Service {
     private static final Logger log = LoggerFactory.getLogger(ApnsHttp2ServiceImpl.class);
-    private ExecutorService service = null;
-    private ApnsHttp2ClientPool clientPool = null;
+    private final ExecutorService service;
+    private final ApnsHttp2ClientPool clientPool;
 
     public ApnsHttp2ServiceImpl(Apns2Config config) {
         service = Executors.newFixedThreadPool(config.getPoolSize());

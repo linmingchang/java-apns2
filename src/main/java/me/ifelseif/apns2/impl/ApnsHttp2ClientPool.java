@@ -19,18 +19,12 @@ import javax.net.ssl.TrustManagerFactory;
 /**
  * Created by linmingchang on 16/12/29.
  */
-public class ApnsHttp2ClientPool implements Closeable {
+public final class ApnsHttp2ClientPool implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(ApnsHttp2ClientPool.class);
-    private BlockingDeque<ApnsHttp2Client> pool = null;
-    private SslContextFactory sslContextFactory = null;
+    private final BlockingDeque<ApnsHttp2Client> pool;
 
     private ApnsHttp2ClientPool(Apns2Config config) {
-        try {
-            sslContextFactory = ApnsHttp2ClientPool.getSslContextFactory(config.getPassword(), config.getKey());
-        } catch (Exception e) {
-            log.error("create sslContextFactory error.", e);
-        }
-
+        SslContextFactory sslContextFactory = ApnsHttp2ClientPool.getSslContextFactory(config.getPassword(), config.getKey());
         pool = new LinkedBlockingDeque<>(config.getPoolSize());
         for (int i = 0; i < config.getPoolSize(); i++) {
             ApnsHttp2ClientImpl client = new ApnsHttp2ClientImpl(sslContextFactory, config.getConnectTimeout(), config.getPushTimeout(), config.getTopic(), config.getPushRetryTimes(), config.getApnsExpiration(), config.getApnsPriority());
@@ -65,25 +59,29 @@ public class ApnsHttp2ClientPool implements Closeable {
     }
 
 
-    private static SslContextFactory getSslContextFactory(String password, InputStream key) throws Exception {
-        //init KeyStore
-        final char[] pwdChars = password.toCharArray();
-        final KeyStore keyStore = KeyStore.getInstance("PKCS12");
-        keyStore.load(key, pwdChars);
-        final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
-        keyManagerFactory.init(keyStore, pwdChars);
-        //init TrustManager
-        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
-        trustManagerFactory.init((KeyStore) null);
-        TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-        //init SSLContext
-        final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
-        sslContext.init(keyManagerFactory.getKeyManagers(), trustManagers, null);
+    private static SslContextFactory getSslContextFactory(String password, InputStream key) {
+        SslContextFactory sslContextFactory1 = new SslContextFactory(true);
+        try {
+            //init KeyStore
+            final char[] pwdChars = password.toCharArray();
+            final KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            keyStore.load(key, pwdChars);
+            final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance("SunX509");
+            keyManagerFactory.init(keyStore, pwdChars);
+            //init TrustManager
+            final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
+            trustManagerFactory.init((KeyStore) null);
+            TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+            //init SSLContext
+            final SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+            sslContext.init(keyManagerFactory.getKeyManagers(), trustManagers, null);
 
-        SslContextFactory sslContextFactory = new SslContextFactory(true);
-        sslContextFactory.setSslContext(sslContext);
-        sslContextFactory.start();
-        return sslContextFactory;
+            sslContextFactory1.setSslContext(sslContext);
+            sslContextFactory1.start();
+        } catch (Exception e) {
+            log.error("create sslContextFactory error.", e);
+        }
+        return sslContextFactory1;
     }
 
     public static ApnsHttp2ClientPool newClientPool(Apns2Config config) {

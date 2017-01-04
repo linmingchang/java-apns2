@@ -9,7 +9,7 @@ import me.ifelseif.apns2.model.Notification;
 /**
  * Created by linmingchang on 16/12/20.
  */
-public class Demo {
+public final class Demo {
     public static void main(String[] args) {
         Apns2Config config = new Apns2Config.Builder()
                 .key("production-195-0.p12")
@@ -44,5 +44,13 @@ public class Demo {
             e.printStackTrace();
         }
         service.shutdown();
+    }
+
+    private Demo(){
+
+    }
+
+    public static Demo getInstance(){
+        return new Demo();
     }
 }

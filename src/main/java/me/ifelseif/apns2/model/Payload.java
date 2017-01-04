@@ -3,6 +3,7 @@ package me.ifelseif.apns2.model;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -69,9 +70,7 @@ public class Payload {
     public String toString() {
         JSONObject object = new JSONObject();
         JSONObject apsObj = new JSONObject();
-        if (getAlert() != null) {
-            apsObj.put("alert", getAlert());
-        } else {
+        if (getAlert() == null || getAlert().isEmpty()) {
             if (getAlertBody() != null || getAlertLocKey() != null) {
                 JSONObject alertObj = new JSONObject();
                 putIntoJson("body", getAlertBody(), alertObj);
@@ -88,6 +87,8 @@ public class Payload {
                 }
                 apsObj.put("alert", alertObj);
             }
+        } else {
+            apsObj.put("alert", getAlert());
         }
 
         if (getBadge() != null) {
@@ -156,11 +157,15 @@ public class Payload {
     }
 
     public String[] getAlertLocArgs() {
-        return alertLocArgs;
+        return alertLocArgs.clone();
     }
 
     public void setAlertLocArgs(String[] alertLocArgs) {
-        this.alertLocArgs = alertLocArgs;
+        if(alertLocArgs == null){
+            this.alertLocArgs = new String[0];
+        } else {
+            this.alertLocArgs = Arrays.copyOf(alertLocArgs,alertLocArgs.length);
+        }
     }
 
     public Integer getContentAvailable() {

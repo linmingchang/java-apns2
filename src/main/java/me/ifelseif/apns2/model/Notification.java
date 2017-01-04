@@ -41,7 +41,7 @@ public class Notification {
     }
 
     public static class Builder {
-        private Payload payload;
+        private final Payload payload;
         private String token;
         private String topic;
 
