@@ -4,7 +4,7 @@ HTTP/2 Apple Push Notification Service (APNs) push provider for JAVA
 
 - 使用苹果最新的推送协议（基于HTTP/2）
 - 基于jetty Http2Client
-- 维持到APNs的长连接（断线重连，定时发送心跳帧）
+- 基于线程池，维持到APNs的长连接（断线重连，定时发送心跳帧）
 - 异步推送，保证推送效率
 
 ## Install
@@ -16,12 +16,14 @@ HTTP/2 Apple Push Notification Service (APNs) push provider for JAVA
 ## Example
 
 ```java
-ApnsHttp2ClientImpl client = new ApnsHttp2ClientImpl.Builder()
+Apns2Config config = new Apns2Config.Builder()
                 .key("production-195-0.p12")
                 .password("apple")
                 .topic("com.weather.NOBWeather")
-                .build()
-                .start();
+                .poolSize(2)
+                .build();
+
+ApnsHttp2Service service = new ApnsHttp2ServiceImpl(config);
 
 Notification notification = new Notification.Builder()
         .alertBody("hello")
@@ -29,15 +31,15 @@ Notification notification = new Notification.Builder()
         .badge(1)
         .build();
 
-client.push("afae802f3bb27e5606c74495453bb4534fc36c5606f663ad4b92afe392e5d7d2", notification, new ResponseListener() {
+service.push("afae802f3bb27e5606c74495453bb4534fc36c5606f663ad4b92afe392e5d7d2", notification, new ResponseListener() {
     @Override
-    public void success(String deviceToken,Notification notification) {
+    public void success(String deviceToken, Notification notification) {
         System.out.println(notification.getPayload());
     }
 
     @Override
-    public void failure(String deviceToken,Notification notification,int status,String reason) {
-        System.out.println("status:"+status+" reason:"+reason);
+    public void failure(String deviceToken, Notification notification, int status, String reason) {
+        System.out.println("status:" + status + " reason:" + reason);
     }
 });
 
@@ -46,5 +48,5 @@ try {
 } catch (InterruptedException e) {
     e.printStackTrace();
 }
-client.stop();
+service.shutdown();
 ```
