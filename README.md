@@ -17,9 +17,9 @@ HTTP/2 Apple Push Notification Service (APNs) push provider for JAVA
 
 ```java
 Apns2Config config = new Apns2Config.Builder()
-                .key("production-195-0.p12")
-                .password("apple")
-                .topic("com.weather.NOBWeather")
+                .key("keyfile.p12")
+                .password("yourPassword")
+                .topic("yourTopic")
                 .poolSize(2)
                 .build();
 
