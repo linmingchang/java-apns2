@@ -22,12 +22,14 @@ import javax.net.ssl.TrustManagerFactory;
 public final class ApnsHttp2ClientPool implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(ApnsHttp2ClientPool.class);
     private final BlockingDeque<ApnsHttp2Client> pool;
+    private static int CLIENT_ID_SEQ = 1;
 
     private ApnsHttp2ClientPool(Apns2Config config) {
         SslContextFactory sslContextFactory = ApnsHttp2ClientPool.getSslContextFactory(config.getPassword(), config.getKey());
         pool = new LinkedBlockingDeque<>(config.getPoolSize());
         for (int i = 0; i < config.getPoolSize(); i++) {
-            ApnsHttp2ClientImpl client = new ApnsHttp2ClientImpl(sslContextFactory, config.getConnectTimeout(), config.getPushTimeout(), config.getTopic(), config.getPushRetryTimes(), config.getApnsExpiration(), config.getApnsPriority());
+            String clientName = "production-" + CLIENT_ID_SEQ++;
+            ApnsHttp2ClientImpl client = new ApnsHttp2ClientImpl(clientName, sslContextFactory, config.getConnectTimeout(), config.getPushTimeout(), config.getTopic(), config.getPushRetryTimes(), config.getApnsExpiration(), config.getApnsPriority(), config.getHeartbeatInterval());
             pool.add(client);
         }
     }

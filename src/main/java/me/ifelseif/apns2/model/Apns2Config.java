@@ -16,6 +16,7 @@ public class Apns2Config {
     private int apnsExpiration;
     private int apnsPriority;
     private int poolSize;
+    private int heartbeatInterval;
 
     public String getPassword() {
         return password;
@@ -89,7 +90,15 @@ public class Apns2Config {
         this.poolSize = poolSize;
     }
 
-    public Apns2Config(String password, InputStream key, int connectTimeout, int pushTimeout, String topic, int pushRetryTimes, int apnsExpiration, int apnsPriority, int poolSize) {
+    public int getHeartbeatInterval() {
+        return heartbeatInterval;
+    }
+
+    public void setHeartbeatInterval(int heartbeatInterval) {
+        this.heartbeatInterval = heartbeatInterval;
+    }
+
+    public Apns2Config(String password, InputStream key, int connectTimeout, int pushTimeout, String topic, int pushRetryTimes, int apnsExpiration, int apnsPriority, int poolSize, int heartbeatInterval) {
         this.password = password;
         this.key = key;
         this.connectTimeout = connectTimeout;
@@ -99,6 +108,7 @@ public class Apns2Config {
         this.apnsExpiration = apnsExpiration;
         this.apnsPriority = apnsPriority;
         this.poolSize = poolSize;
+        this.heartbeatInterval = heartbeatInterval;
     }
 
     public static class Builder {
@@ -111,6 +121,7 @@ public class Apns2Config {
         private int pushRetryTimes = 3;
         private String topic;
         private int poolSize;
+        private int heartbeatInterval = 10000;
 
         public Apns2Config.Builder password(String password) {
             this.password = password;
@@ -161,8 +172,13 @@ public class Apns2Config {
             return this;
         }
 
+        public Apns2Config.Builder heartbeatInterval(int heartbeatInterval) {
+            this.heartbeatInterval = heartbeatInterval;
+            return this;
+        }
+
         public Apns2Config build() {
-            return new Apns2Config(password, key, connectTimeout, pushTimeout, topic, pushRetryTimes, apnsExpiration, apnsPriority, poolSize);
+            return new Apns2Config(password, key, connectTimeout, pushTimeout, topic, pushRetryTimes, apnsExpiration, apnsPriority, poolSize, heartbeatInterval);
         }
     }
 }
