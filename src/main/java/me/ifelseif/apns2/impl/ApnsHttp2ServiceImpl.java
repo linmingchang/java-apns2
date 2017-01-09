@@ -27,17 +27,18 @@ public class ApnsHttp2ServiceImpl implements ApnsHttp2Service {
 
     @Override
     public void push(String token, Notification notification, ResponseListener listener) {
-        service.execute(new Runnable() {
-            @Override
-            public void run() {
-                ApnsHttp2Client client = null;
-                try {
-                    client = clientPool.borrowClient();
+        service.execute(()->{
+            ApnsHttp2Client client = null;
+            try {
+                client = clientPool.borrowClient();
+                if(client != null){
                     client.push(token, notification, listener);
-                } finally {
-                    if (client != null) {
-                        clientPool.returnClient(client);
-                    }
+                }else{
+                    log.error("can't get client");
+                }
+            } finally {
+                if (client != null) {
+                    clientPool.returnClient(client);
                 }
             }
         });
