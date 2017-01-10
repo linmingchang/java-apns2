@@ -94,7 +94,7 @@ public class Notification {
             return this;
         }
 
-        public Builder addParam(String key, String value) {
+        public Builder addParam(String key, Object value) {
             payload.addParam(key, value);
             return this;
         }
