@@ -40,7 +40,7 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
     private static final Logger log = LoggerFactory.getLogger(ApnsHttp2ClientImpl.class);
     private static final String APNS_HOST = "api.push.apple.com";
     private static final int APNS_PORT = 443;
-    private final String URI_BASE = "https://" + APNS_PORT + ":" + APNS_PORT + "/3/device/";
+    private final String URI_BASE = "https://" + APNS_HOST + ":" + APNS_PORT + "/3/device/";
     private HTTP2Client http2Client;
     private Session session;
     private long sendCount;
@@ -124,6 +124,7 @@ public class ApnsHttp2ClientImpl implements ApnsHttp2Client {
                     e.printStackTrace();
                     break;
                 }
+                stop();
                 backoff = backoff > BACKOFF_MAX ? BACKOFF_MAX : backoff * 2;
             }
         }
